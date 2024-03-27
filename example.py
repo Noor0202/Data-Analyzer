@@ -1,5 +1,5 @@
 # Importing the script
-from distribution_analyzer import Distribution, DistributionAnalyzer, OutputFormatter
+from AllDistribution import Distribution, DistributionAnalyzer, OutputFormatter
 
 #___________________________ Random Data ___________________________
 
