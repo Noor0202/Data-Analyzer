@@ -42,7 +42,7 @@ dis_obj.check_distribution()
 
 # itern = dis_obj.gamma_distribution(10)              # Testing pending
 # itern = dis_obj.exponential_distribution(10)      # Testing pending
-itern = dis_obj.normal_distribution(10)           # Testing pending
+# itern = dis_obj.normal_distribution(10)           # Testing pending
 # itern = dis_obj.log_normal_distribution(10)       # Testing pending
 # itern = dis_obj.beta_distribution(10)             # Testing pending
 # itern = dis_obj.binomial_distribution()           # Testing pending
@@ -75,6 +75,7 @@ out_obj.print_stats()
 
 #_______________ Checking selected Distribution is fitted or not _______________
 
+# i pass 0.05 level of significance you can pass by your choice
 
 chi_table = out_obj.find_chi_sqr_table_value(dof, 0.05)
 out_obj.check_chi_sqr_value(chi_table)
@@ -82,5 +83,6 @@ out_obj.check_chi_sqr_value(chi_table)
 #_______________ Visualizing selected Distribution _______________
 
 # Uncoment to plot graphs
-out_obj.plot_continuous_bar()
-out_obj.plot_observed_vs_expected_frequency()
+
+# out_obj.plot_continuous_bar()
+# out_obj.plot_observed_vs_expected_frequency()
