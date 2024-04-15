@@ -1,5 +1,6 @@
 # Importing all necessary Libraries
 
+from scipy.interpolate import make_interp_spline
 from scipy.stats import skew,kurtosis
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
@@ -16,14 +17,14 @@ class DistributionAnalyzer:
     # Initialize stats of data
     def __init__(self,data):
         self.__data = data
-        self.sum_data = sum(data)
+        self.sum_data = sum(self.__data)
         self.len_data = len(self.__data)
-        self.mean = np.mean(data) 
-        self.variance = np.var(data)
-        self.standard_deviation = np.std(data)
-        self.log_mean = sum(np.log(x) for x in self.__data) / self.len_data
-        self.log_variance = sum((np.log(x) - self.log_mean) ** 2 for x in self.__data) / self.len_data
-        self.log_std = np.sqrt(self.log_variance)
+        self.mean = np.mean(self.__data) 
+        self.variance = np.var(self.__data)
+        self.standard_deviation = np.std(self.__data)
+        # self.log_mean = sum(np.log(x) for x in self.__data) / self.len_data
+        # self.log_variance = sum((np.log(x) - self.log_mean) ** 2 for x in self.__data) / self.len_data
+        # self.log_std = np.sqrt(self.log_variance)
         self.coefficient_of_variation = np.sqrt(self.variance) / self.mean
         self.tau = self.standard_deviation / self.mean
         self.laxious_ratio = self.standard_deviation / self.mean
@@ -35,8 +36,7 @@ class DistributionAnalyzer:
         data_set = set(self.__data)
         intervals_list = []
         for i in data_set:
-            interval = [i, 0, self.__data.count(i)]
-            intervals_list.append(interval)
+            intervals_list.append([i, 0, self.__data.count(i)])
         return intervals_list
     
     # Frequency table for continuous data which calculates observed frequency
@@ -54,13 +54,13 @@ class DistributionAnalyzer:
         return intervals_list
     
     # It creates observed frequency and intervals based on function used in exponential and Weibull distributions
-    def interval_boundaries(self,expo_function, ei_freq, no_of_intervals):
+    def interval_boundaries(self,function, ei_freq, no_of_intervals):
         intervals = []
         tolerance = 1e-10
         prev_interval_key = [0, 0]
 
         for i in range(1,no_of_intervals + 1):
-            upper_bound = expo_function(i)
+            upper_bound = function(i)
             if i == 1:
                 interval_key = [0, upper_bound]
                 prev_interval_key = interval_key
@@ -80,10 +80,11 @@ class DistributionAnalyzer:
 
     # Calculating MLE for gamma distribution
     def estimate_maximum_likelihood(self):
-        total_mean = 0
+        log_mean = 0
         for i in self.__data:
-            total_mean += np.log(i)
-        t_value = 1 / (np.log(self.mean) - (total_mean) / len(self.__data))
+            log_mean += np.log(i)
+        log_mean = log_mean / self.len_data
+        t_value = 1 / (np.log(self.mean) - log_mean)
         return t_value
 
     # Area under the curve for all continuous distributions
@@ -174,13 +175,16 @@ class DistributionAnalyzer:
         
         dis_option = []
         
-        if type(self.__data[0]) is float or type(self.__data[0]) is np.float64:
+        if type(sum(self.__data)) is float or type(sum(self.__data)) is np.float64:
             print("\nData seems to be Continuous data.")
             print("\n\tYou have some distribution options:")
             print("\n\t\t1) Normal Distribution\n\t\t2) Exponential Distribution\n\t\t3) Gamma Distribution\n\t\t4) Log-Normal Distribution\n\t\t5) Weibull Distribution\n\t\t6) Beta Distribution")
             
             if math.ceil(self.coefficient_of_variation) == 1 or math.ceil(self.skewness) == 2 :
                 dis_option.append(f"Exponential Distribution -\tCV ({self.coefficient_of_variation}) is close to 1 or Skewness ({self.skewness}) is near to 2")
+            
+            if self.skewness > 0 and math.ceil(self.coefficient_of_variation) == 1 :
+                dis_option.append(f"Weibull Distribution -\tCV ({self.coefficient_of_variation}) is close to 1 or Skewness ({self.skewness}) is greater than 0")
                 
             if self.skewness > 0:
                 dis_option.append(f"Gamma Distribution -\tdistribution is skewed to the right -\t Skewness ({self.skewness})")
@@ -302,11 +306,8 @@ class OutputFormatter(DistributionAnalyzer):
     def print_stats(self):
         print("\n\nTotal Length of Data - ", self.len_data)
         print("Mean of Data - ", self.mean)
-        print("Logarithmic Mean of Data - ", self.log_mean)
         print("Variance of Data - ", self.variance)
-        print("Logarithmic Variance of Data - ", self.log_variance)
         print("Standard Deviation of Data - ", self.standard_deviation)
-        print("Logarithmic Standard Deviation of Data - ", self.log_std)
         print("Coefficient of Variation of Data - ", self.coefficient_of_variation)
         print("Tau Value of Data - ", self.tau)
         print("Skewness of Data - ", self.skewness)
@@ -382,7 +383,33 @@ class OutputFormatter(DistributionAnalyzer):
         plt.title('Bar Graph of Observed vs Expected Frequency')
         plt.legend()
         plt.show()
+    
+    def plot_observed_vs_expected_curve(self):
+        
+        x_intervals = [item[0] for item in self.intervals_list[:-1]]
+        observed_freq = [item[3] for item in self.intervals_list[:-1]]
+        expected_freq = [item[4] for item in self.intervals_list[:-1]]
+        
+        obs_line = make_interp_spline(x_intervals, observed_freq)
+        exp_line = make_interp_spline(x_intervals, expected_freq)
 
+
+        x_new = np.linspace(min(x_intervals), max(x_intervals), 5000)
+
+        obs_smooth = obs_line(x_new)
+        exp_smooth = exp_line(x_new)
+
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(x_new, obs_smooth, label='Observed Frequency', color='blue')
+        plt.plot(x_new, exp_smooth, label='Expected Frequency', color='red')
+        plt.title("Smooth Curves Observed vs Expected Frequency")
+        plt.xlabel("Intervals")
+        plt.ylabel("Frequency")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+        
 # Class for various probability distribution calculations.
 class Distribution(DistributionAnalyzer):
     
@@ -408,14 +435,14 @@ class Distribution(DistributionAnalyzer):
         
 
         for sub_list in intervals:
-            total_area = DistributionAnalyzer.area_under_the_curve(gamma_pdf, sub_list[0], sub_list[1], 1000)
+            total_area = DistributionAnalyzer.area_under_the_curve(gamma_pdf, sub_list[0], sub_list[1], 100000)
             expected_frequency = total_area * self.len_data
             sub_list.append(expected_frequency)
             sub_list.append(total_area)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nAlpha is - ":alpha,"Beta is - ":beta,"T_Value is - ":t_value,"Gamma_Value is - ":gamma_value,"Error is - ":error,"Degree of Freedom is - ":len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nAlpha is - ":alpha,"Beta is - ":beta,"T_Value is - ":t_value,"Gamma_Value is - ":gamma_value,"Error is - ":error,"Degree of Freedom is - ":len(merg_interv) - 2 - 1})
     
     # Method to calculate normal distribution.
     def normal_distribution(self,number_of_interval):
@@ -430,17 +457,21 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(total_area)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nDegree of Freedom is - ":len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nDegree of Freedom is - ":len(merg_interv) - 2 - 1})
     
     # Method to calculate log-normal distribution.
     def log_normal_distribution(self,number_of_interval):
         
         intervals = DistributionAnalyzer.continuous_freq_table(self,number_of_interval)
         
+        log_mean = np.log( (self.mean ** 2 ) / np.sqrt(self.variance + self.mean ** 2))    
+        log_variance = np.sqrt(np.log((self.variance + self.mean ** 2) / (self.mean ** 2 )))
+          
         def log_norm_pdf(x):
-            return (1 / (x * self.log_std * math.sqrt(2 * math.pi))) * math.exp(-((np.log(x) - self.log_mean) ** 2) / (2 * self.log_std ** 2))
+            return ((1 / np.sqrt(2 * np.pi * log_variance)) * np.exp(( (np.log(x) - log_mean) ** 2) / 2 * log_variance))    
+        
             
         for sub_list in intervals:
             total_area = DistributionAnalyzer.area_under_the_curve(log_norm_pdf, sub_list[0], sub_list[1], 1000000)
@@ -449,9 +480,9 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(total_area)
         
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nDegree of Freedom is - ":len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nDegree of Freedom is - ":len(merg_interv) - 2 - 1})
 
     # Method to calculate beta distribution.
     def beta_distribution(self,number_of_interval):
@@ -475,9 +506,9 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(total_area)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nAlpha1 is - ":alpha1,"Alpha2 is - ":alpha2,"BETA_v is - ":BETA_v,"Error is - ":error,"Degree of Freedom is - ":len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nAlpha1 is - ":alpha1,"Alpha2 is - ":alpha2,"BETA_v is - ":BETA_v,"Error is - ":error,"Degree of Freedom is - ":len(merg_interv) - 2 - 1})
   
     # Method to calculate exponential distribution.
     def exponential_distribution(self,number_of_interval):
@@ -487,19 +518,62 @@ class Distribution(DistributionAnalyzer):
         p_value = expected_freq / self.len_data
         
         def expo_func(x):
-            return (-1 / lambdaa) * (np.log(1 - x * p_value))
+                return (-1 / lambdaa) * (np.log(1 - x * p_value))
         
         intervals = DistributionAnalyzer.interval_boundaries(self,expo_func,expected_freq,number_of_interval)
-        # print("\n\n",intervals) #error
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
-        # print("\n\n",mer_inter)
-        return (mer_inter,{"\n\nLambdaa is - ":lambdaa,"Expected Frequency is - ":expected_freq,"P_Value is - ":p_value,"Degree of Freedom is - ": len(mer_inter) - 1 - 1})  
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
+        return (merg_interv,{"\n\nLambdaa is - ":lambdaa,"Expected Frequency is - ":expected_freq,"P_Value is - ":p_value,"Degree of Freedom is - ": len(merg_interv) - 1 - 1})  
     
     
-    #pending
-    def weibul_distribution(self,number_of_interval):
-        pass      
-    
+    # Method to calculate weibull distribution.
+    def weibull_distribution(self,number_of_interval):
+        
+        data = self._DistributionAnalyzer__data
+        def func_alpha(alpha):
+            first_operation = self.len_data / alpha
+            second_operation = sum(np.log(value) for value in data)
+            third_operation = (self.len_data * sum((value ** alpha) * np.log(value) for value in data)) / sum(value ** alpha for value in data)
+            
+            return first_operation + second_operation - third_operation
+        
+        def derivative_func_alpha(alpha):
+            first_operation = self.len_data / alpha**2
+            second_operation = (self.len_data * sum((value ** alpha) * np.log(value**2) for value in data)) / sum(value ** alpha for value in data)
+            third_operation = (self.len_data * (sum((value ** alpha) * np.log(value) for value in data)) ** 2 ) / (sum(value ** alpha for value in data)) ** 2
+            
+            return (-first_operation) - second_operation + third_operation
+        
+        def return_alpha():
+            prev_alpha = self.mean / self.standard_deviation
+            curr_alpha = prev_alpha - (func_alpha(prev_alpha) / derivative_func_alpha(prev_alpha))
+            error = curr_alpha - prev_alpha
+            
+            while abs(error) >= 0.0000001:
+                prev_alpha = curr_alpha
+                curr_alpha = prev_alpha - (func_alpha(prev_alpha) / derivative_func_alpha(prev_alpha))
+                error = curr_alpha - prev_alpha
+                
+            return curr_alpha
+
+        def return_beta(alpha):
+            return ((1 / self.len_data) * (sum(value ** alpha for value in data)))** (1/alpha)
+        
+        alpha = return_alpha()
+        beta = return_beta(alpha)
+        expected_freq = self.len_data / number_of_interval
+        # p_value = expected_freq / self.len_data
+        p_value = 1 / number_of_interval
+        
+        # def weib_func(x):
+            # return (alpha * beta**(-alpha)) * (x ** (alpha - 1)) * (np.exp(-x / beta) ** alpha)
+        def weib_func(x):
+            return beta * ( - np.log(1 - x * p_value) ) ** (1 / alpha)
+        
+        intervals = DistributionAnalyzer.interval_boundaries(self,weib_func,expected_freq,number_of_interval)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
+        return (merg_interv,{"\n\nAlpha is - ":alpha,"Beta is - ":beta,"Expected Frequency is - ":expected_freq,"Degree of Freedom is - ": len(merg_interv) - 2 - 1})  
+        
+                
     # Method to calculate binomial distribution.
     def binomial_distribution(self):
 
@@ -517,9 +591,9 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(0)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nProbability of Success is - ":prob_succ,"Probability of Failure is - ":prob_fail,"Number of Trial is - ":no_of_trial,"Degree of Freedom is - ": len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nProbability of Success is - ":prob_succ,"Probability of Failure is - ":prob_fail,"Number of Trial is - ":no_of_trial,"Degree of Freedom is - ": len(merg_interv) - 2 - 1})
     
     # Method to calculate Negative binomial distribution.
     def negative_binomial_distribution(self):
@@ -539,9 +613,9 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(0)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nProbability of Success is - ":prob_succ,"Probability of Failure is - ":prob_fail,"Number of Success is - ":no_of_success,"Degree of Freedom is - ": len(mer_inter) - 2 - 1})
+        return (merg_interv,{"\n\nProbability of Success is - ":prob_succ,"Probability of Failure is - ":prob_fail,"Number of Success is - ":no_of_success,"Degree of Freedom is - ": len(merg_interv) - 2 - 1})
     
     # Method to calculate Poisson distribution.
     def poisson_distribution(self):
@@ -557,9 +631,9 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(0)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nProbability of Success is - ":p_value,"Degree of Freedom is - ": len(mer_inter) - 1 - 1})
+        return (merg_interv,{"\n\nProbability of Success is - ":p_value,"Degree of Freedom is - ": len(merg_interv) - 1 - 1})
     
     # Method to calculate Geometric distribution.
     def geometric_distribution(self):
@@ -576,6 +650,6 @@ class Distribution(DistributionAnalyzer):
             sub_list.append(expected_frequency)
             sub_list.append(0)
         
-        mer_inter = DistributionAnalyzer.merged_intervals(intervals,5)
+        merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
-        return (mer_inter,{"\n\nProbability of Success is - ":prob_succ,"Degree of Freedom is - ": len(mer_inter) - 1 - 1})    
+        return (merg_interv,{"\n\nProbability of Success is - ":prob_succ,"Degree of Freedom is - ": len(merg_interv) - 1 - 1})    
