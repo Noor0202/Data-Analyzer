@@ -49,7 +49,7 @@ dis_obj.check_distribution()
 # itern = dis_obj.negative_binomial_distribution()  # Testing pending
 # itern = dis_obj.poisson_distribution()            # Testing pending
 # itern = dis_obj.geometric_distribution()          # Testing pending
-# itern = dis_obj.weibull_distribution(10)          # Code pending
+# itern = dis_obj.weibull_distribution(10)          # Testing pending
 
 #___________________________ Getting Degree of Freedom ___________________________
 
