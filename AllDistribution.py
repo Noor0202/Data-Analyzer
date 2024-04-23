@@ -180,7 +180,7 @@ class DistributionAnalyzer:
             print("\n\tYou have some distribution options:")
             print("\n\t\t1) Normal Distribution\n\t\t2) Exponential Distribution\n\t\t3) Gamma Distribution\n\t\t4) Log-Normal Distribution\n\t\t5) Weibull Distribution\n\t\t6) Beta Distribution")
             
-            if math.ceil(self.coefficient_of_variation) == 1 or math.ceil(self.skewness) == 2 :
+            if math.ceil(self.coefficient_of_variation) == 1 and math.ceil(self.skewness) == 2 :
                 dis_option.append(f"Exponential Distribution -\tCV ({self.coefficient_of_variation}) is close to 1 or Skewness ({self.skewness}) is near to 2")
             
             if self.skewness > 0 and math.ceil(self.coefficient_of_variation) == 1 :
@@ -370,7 +370,7 @@ class OutputFormatter(DistributionAnalyzer):
         plt.show()
         
     # Method to plot distribution bar graph of observed freq and expected freq.   
-    def plot_observed_vs_expected_frequency(self):
+    def plot_observed_vs_expected_bar(self):
     
         x_intervals = [item[0] for item in self.intervals_list[:-1]]
         observed_freq = [item[3] for item in self.intervals_list[:-1]]
