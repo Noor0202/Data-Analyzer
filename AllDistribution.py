@@ -88,6 +88,7 @@ class DistributionAnalyzer:
         return t_value
 
     # Area under the curve for all continuous distributions
+    @staticmethod
     def area_under_the_curve(function, lower_bound, upper_bound, no_sub_intervals):
         width = (upper_bound - lower_bound) / no_sub_intervals
         total_area = 0
@@ -107,6 +108,7 @@ class DistributionAnalyzer:
 
 
     # Merged interval method for all distributions
+    @staticmethod
     def merged_intervals(list_intervals, threshold):
         merg_intern = []
         curr_interval = None
@@ -143,6 +145,7 @@ class DistributionAnalyzer:
         return merg_intern
     
     # Calculating t_value for gamma distribution
+    @staticmethod
     def find_t_value(t_value):
         
         t_value_data = {
@@ -653,3 +656,4 @@ class Distribution(DistributionAnalyzer):
         merg_interv = DistributionAnalyzer.merged_intervals(intervals,5)
         
         return (merg_interv,{"\n\nProbability of Success is - ":prob_succ,"Degree of Freedom is - ": len(merg_interv) - 1 - 1})    
+    
